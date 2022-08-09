@@ -909,3 +909,116 @@ func TestCqlValueStringMap(t *testing.T) {
 		})
 	}
 }
+
+func TestCQLFromDuration(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   Duration
+		content CqlValue
+	}{
+		{
+			name:  "zero",
+			value: Duration{},
+			content: CqlValue{
+				Type: &Option{
+					ID: DurationID,
+				},
+				Value: Bytes{
+					0x00, 0x00, 0x00,
+				},
+			},
+		},
+		{
+			name: "123",
+			value: Duration{
+				Months:      1,
+				Days:        2,
+				Nanoseconds: 3,
+			},
+			content: CqlValue{
+				Type: &Option{
+					ID: DurationID,
+				},
+				Value: Bytes{0x02, 0x04, 0x06},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := CqlFromDuration(tc.value)
+			if diff := cmp.Diff(res, tc.content); diff != "" {
+				t.Fatalf(diff)
+			}
+		})
+	}
+}
+
+func TestCqlValue_AsDuration(t *testing.T) { // nolint:dupl // Tests are different.
+	t.Parallel()
+	testCases := []struct {
+		name     string
+		content  CqlValue
+		valid    bool
+		expected Duration
+	}{
+		{
+			name: "empty duration",
+			content: CqlValue{
+				Type:  &Option{ID: DurationID},
+				Value: Bytes{},
+			},
+			valid: false,
+		},
+		{
+			name: "wrong type",
+			content: CqlValue{
+				Type: &Option{ID: BlobID},
+			},
+			valid: false,
+		},
+		{
+			name: "123",
+			content: CqlValue{
+				Type:  &Option{ID: DurationID},
+				Value: Bytes{0x02, 0x04, 0x06},
+			},
+			valid: true,
+			expected: Duration{
+				Months:      1,
+				Days:        2,
+				Nanoseconds: 3,
+			},
+		},
+		{
+			name: "300ms",
+			content: CqlValue{
+				Type: &Option{ID: DurationID},
+				Value: Bytes{
+					0x00, 0x00, 0xc9, 0x27, 0xc0,
+				},
+			},
+			valid: true,
+			expected: Duration{
+				Nanoseconds: 300_000,
+			},
+		},
+	}
+
+	for i := 0; i < len(testCases); i++ {
+		tc := testCases[i]
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			v, err := tc.content.AsDuration()
+			if err != nil {
+				if tc.valid {
+					t.Fatal(err)
+				}
+				return
+			}
+
+			if v != tc.expected {
+				t.Fatalf("expected %v, got %v", tc.expected, v)
+			}
+		})
+	}
+}

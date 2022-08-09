@@ -328,6 +328,7 @@ func (q *QueryOptions) SetFlags() {
 type OptionID Short
 
 // https://github.com/apache/cassandra/blob/adcff3f630c0d07d1ba33bf23fcb11a6db1b9af1/doc/native_protocol_v4.spec#L615-L658
+// https://github.com/apache/cassandra/blob/881b08f7015a4342833079e648e478526cc3b31a/doc/native_protocol_v5.spec#L1050-L1210
 const (
 	CustomID    OptionID = 0x0000
 	ASCIIID     OptionID = 0x0001
@@ -349,6 +350,7 @@ const (
 	TimeID      OptionID = 0x0012
 	SmallIntID  OptionID = 0x0013
 	TinyIntID   OptionID = 0x0014
+	DurationID  OptionID = 0x0015
 	ListID      OptionID = 0x0020
 	MapID       OptionID = 0x0021
 	SetID       OptionID = 0x0022
@@ -436,4 +438,10 @@ type PreparedMetadata struct {
 	GlobalKeyspace string
 	GlobalTable    string
 	Columns        []ColumnSpec
+}
+
+type Duration struct {
+	Months      int32
+	Days        int32
+	Nanoseconds int64
 }
